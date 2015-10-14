@@ -1,9 +1,12 @@
 package nexus_rest;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import flow_structure.TreeNode;
 import nexus_http.HttpException;
+import nexus_http.Link;
 import nexus_http.Method;
 import nexus_http.Path;
 import nexus_http.Request;
@@ -33,11 +36,10 @@ public interface Resource
 	 * resource was created, it should be returned as well. The resource shouldn't expect this 
 	 * method call, if it doesn't allow POST.
 	 * @param request The request for the operation
-	 * @return A resource that was created or null if no resource was created but the 
-	 * operation was still completed
+	 * @return A link to the newly created resource
 	 * @throws HttpException If the operation wasn't completed
 	 */
-	public Resource post(Request request) throws HttpException;
+	public Link post(Request request) throws HttpException;
 	
 	/**
 	 * Modifies the resource somehow.  The resource shouldn't expect this 
@@ -107,5 +109,41 @@ public interface Resource
 		}
 		
 		return false;
+	}
+	
+	/**
+	 * Finds all the resources directly below the provided resource node in a hierarchical 
+	 * tree structure.
+	 * @param node The node who's children are collected
+	 * @return All the direct children of the provided node
+	 */
+	public static List<Resource> getDirectNodeChilder(TreeNode<Resource> node)
+	{
+		List<Resource> resources = new ArrayList<>();
+		
+		for (TreeNode<Resource> child : node.getChildren())
+		{
+			resources.add(child.getContent());
+		}
+		
+		return resources;
+	}
+	
+	/**
+	 * Finds all the resources stored in a hierarchical tree structure
+	 * @param resourceTree A resource tree
+	 * @return The root node resource and each resource under it.
+	 */
+	public static List<Resource> getResourcesFromTree(TreeNode<Resource> resourceTree)
+	{
+		List<Resource> resources = new ArrayList<>();
+		
+		resources.add(resourceTree.getContent());
+		for (TreeNode<Resource> child : resourceTree.getChildren())
+		{
+			resources.addAll(getResourcesFromTree(child));
+		}
+		
+		return resources;
 	}
 }

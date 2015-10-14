@@ -2,7 +2,7 @@ package nexus_rest;
 
 import java.io.OutputStream;
 
-import nexus_http.Path;
+import nexus_http.Link;
 
 /**
  * Resource writers are used when forming a body for a response. The writers should be 
@@ -34,10 +34,9 @@ public interface ResourceWriter
 	
 	/**
 	 * The writer writes a link element under the currently open resource.
-	 * @param linkName The name of the link attribute
-	 * @param targetPath The target path of the link
+	 * @param link the link to write
 	 */
-	public void writeLink(String linkName, Path targetPath);
+	public void writeLink(Link link);
 	
 	/**
 	 * The writer writes the document end. No more resources or attributes can be written 
@@ -50,6 +49,12 @@ public interface ResourceWriter
 	 * outside the writer itself.
 	 */
 	public OutputStream getStream();
+	
+	/**
+	 * Closes the writer and releases any resource attached to it. This must not close the 
+	 * output stream. The writer shouldn't be used after calling this method.
+	 */
+	public void close();
 	
 	
 	// SUBCLASSES	----------------------

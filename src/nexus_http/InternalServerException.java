@@ -6,7 +6,7 @@ package nexus_http;
  * @author Mikko Hilpinen
  * @since 10.10.2015
  */
-public class InternalServerExeption extends HttpException
+public class InternalServerException extends HttpException
 {
 	// ATTRIBUTES	--------------------
 	
@@ -25,10 +25,24 @@ public class InternalServerExeption extends HttpException
 	 * @param request The request that was being handled
 	 * @param sourceLocation The location of the resource that encountered the exception
 	 */
-	public InternalServerExeption(String message,
+	public InternalServerException(String message,
 			Throwable cause, Request request, Path sourceLocation)
 	{
 		super(HttpStatus.INTERNAL_SERVER_ERROR, message, cause);
+		
+		this.request = request;
+		this.sourceLocation = sourceLocation;
+	}
+	
+	/**
+	 * Creates a new exception
+	 * @param message The message describing the exception context
+	 * @param request The request that was being handled
+	 * @param sourceLocation The location of the resource that encountered the exception
+	 */
+	public InternalServerException(String message, Request request, Path sourceLocation)
+	{
+		super(HttpStatus.INTERNAL_SERVER_ERROR, message);
 		
 		this.request = request;
 		this.sourceLocation = sourceLocation;

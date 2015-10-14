@@ -26,6 +26,18 @@ public class MethodNotAllowedException extends HttpException
 		this.allowed = allowedMethods;
 	}
 	
+	/**
+	 * Creates a new exception.
+	 * @param message The message sent along with the exception
+	 * @param allowedMethods The methods that are allowed for the targeted resource
+	 */
+	public MethodNotAllowedException(String message, Method... allowedMethods)
+	{
+		super(HttpStatus.METHOD_NOT_ALLOWED, message);
+		
+		this.allowed = allowedMethods;
+	}
+	
 	
 	// IMPLEMENTED METHODS	----------
 	

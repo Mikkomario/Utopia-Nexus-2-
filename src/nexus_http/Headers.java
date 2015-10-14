@@ -41,9 +41,14 @@ public class Headers
 	 * The type of content in the response body
 	 */
 	public static final String CONTENT_TYPE = "Content-Type";
+	/**
+	 * The content types accepted by the client
+	 */
+	public static final String ACCEPT = "Accept";
 	
 	private Map<String, String> headers;
 	private Map<String, String> originalCasing;
+	private AcceptHeader acceptHeader;
 	
 	
 	// CONSTRUCTOR	---------------------
@@ -55,6 +60,7 @@ public class Headers
 	{
 		this.headers = new HashMap<>();
 		this.originalCasing = new HashMap<>();
+		this.acceptHeader = null;
 	}
 	
 	/**
@@ -67,6 +73,7 @@ public class Headers
 		this.headers.putAll(other.headers);
 		this.originalCasing = new HashMap<>();
 		this.originalCasing.putAll(other.originalCasing);
+		this.acceptHeader = other.acceptHeader;
 	}
 	
 	
@@ -217,5 +224,129 @@ public class Headers
 	public void setContentType(ContentType type)
 	{
 		addHeader(CONTENT_TYPE, type.toString());
+	}
+	
+	/**
+	 * @return The accept header provided by the client
+	 */
+	public AcceptHeader getAcceptHeader()
+	{
+		if (this.acceptHeader == null)
+			this.acceptHeader = new AcceptHeader();
+		
+		return this.acceptHeader;
+	}
+	
+	
+	// SUBCLASSES	----------------------
+	
+	/**
+	 * The accept -header provided by the client. The header can be used for narrowing down 
+	 * the possible content-types
+	 * @author Mikko Hilpinen
+	 * @since 14.10.2015
+	 */
+	public class AcceptHeader
+	{
+		// ATTRIBUTES	------------------
+		
+		private Map<String, Double> acceptedTypes;
+		
+		
+		// CONSTRUCTOR	------------------
+		
+		/**
+		 * Sets a new accept header that accepts the provided content types
+		 * @param acceptedTypes The content types accepted, each mapped to a priority ]0, 1]
+		 */
+		public AcceptHeader(Map<ContentType, Double> acceptedTypes)
+		{
+			this.acceptedTypes = new HashMap<>();
+			StringBuilder headerValue = new StringBuilder();
+			
+			boolean isFirst = true;
+			for (ContentType type : acceptedTypes.keySet())
+			{
+				double priority = acceptedTypes.get(type);
+				this.acceptedTypes.put(type.toString(), priority);
+				
+				if (!isFirst)
+					headerValue.append(", ");
+				headerValue.append(type.toString());
+				headerValue.append("; q=");
+				headerValue.append(priority);
+			}
+			
+			addHeader(ACCEPT, headerValue.toString());
+		}
+		
+		/**
+		 * Creates a new set of acceptHeaders
+		 */
+		private AcceptHeader()
+		{
+			this.acceptedTypes = new HashMap<>();
+			
+			// Parses the headers (if possible)
+			String headerValue = getHeaderValue(ACCEPT);
+			if (headerValue != null)
+			{
+				String[] contentTypes = headerValue.split("\\,");
+				for (String contentTypeString : contentTypes)
+				{
+					String[] typeAndArgs = contentTypeString.split("\\;");
+					String contentType = typeAndArgs[0].trim();
+					if (typeAndArgs.length < 2)
+						this.acceptedTypes.put(contentType, 1.0);
+					else
+					{
+						for (int i = 1; i < typeAndArgs.length; i++)
+						{
+							String[] argumentAndValue = typeAndArgs[i].split("\\=");
+							String argument = argumentAndValue[0].trim();
+							if (argument.equals("q") && argumentAndValue.length > 1)
+							{
+								this.acceptedTypes.put(contentType, Double.parseDouble(
+										argumentAndValue[1].trim()));
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		
+		// OTHER METHODS	----------------------
+		
+		/**
+		 * Finds the content type most preferred by the client
+		 * @param availableTypes The content types the service is willing to provide
+		 * @return The content type the client prefers. Null if the client doesn't accept 
+		 * any of the content types.
+		 */
+		public ContentType getPrefferedContentType(Collection<ContentType> availableTypes)
+		{
+			ContentType best = null;
+			double bestPriority = -1;
+			
+			for (ContentType type : availableTypes)
+			{
+				String typeString = type.toString();
+				if (this.acceptedTypes.containsKey(typeString))
+				{
+					double priority = this.acceptedTypes.get(typeString);
+					if (priority == 1)
+						return type;
+					else if (priority > bestPriority)
+					{
+						best = type;
+						bestPriority = priority;
+					}
+				}
+			}
+			
+			return best;
+		}
 	}
 }
