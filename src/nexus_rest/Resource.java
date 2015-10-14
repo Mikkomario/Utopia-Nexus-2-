@@ -1,0 +1,111 @@
+package nexus_rest;
+
+import java.util.Collection;
+
+import flow_structure.TreeNode;
+import nexus_http.HttpException;
+import nexus_http.Method;
+import nexus_http.Path;
+import nexus_http.Request;
+
+/**
+ * Resources are elements that can be connected to each other with links. The resources can 
+ * also be manipulated with requests and oftentimes sent via responses. Resources reside on 
+ * a (virtual) path.
+ * @author Mikko Hilpinen
+ * @since 10.10.2015
+ */
+public interface Resource
+{	
+	/**
+	 * @return The path leading to the resource. The resource should be accessible through 
+	 * the provided path.
+	 */
+	public Path getPath();
+	
+	/**
+	 * @return All the methods this resource allows on itself
+	 */
+	public Method[] getAllowedMethods();
+	
+	/**
+	 * Creates a new resource, element, attribute, etc. Under the resource. In case a new 
+	 * resource was created, it should be returned as well. The resource shouldn't expect this 
+	 * method call, if it doesn't allow POST.
+	 * @param request The request for the operation
+	 * @return A resource that was created or null if no resource was created but the 
+	 * operation was still completed
+	 * @throws HttpException If the operation wasn't completed
+	 */
+	public Resource post(Request request) throws HttpException;
+	
+	/**
+	 * Modifies the resource somehow.  The resource shouldn't expect this 
+	 * method call, if it doesn't allow PUT.
+	 * @param request The request for the operation
+	 * @throws HttpException If the operation wasn't carried out
+	 */
+	public void put(Request request) throws HttpException;
+	
+	/**
+	 * Deletes the resource.  The resource shouldn't expect this 
+	 * method call, if it doesn't allow DELETE.
+	 * @param request The request for the operation
+	 * @throws HttpException If the operation wasn't carried out
+	 */
+	public void delete(Request request) throws HttpException;
+	
+	/**
+	 * This method is used for finding targeted resources under / connected to a certain 
+	 * resource. If one or more of the targeted resources can't be found, the operation fails. 
+	 * The resources should should be ordered hierarchically, so that resource found under 
+	 * other returned resources are returned below them.
+	 * @param targetPaths The target resource paths. The resources that should be returned by 
+	 * this method are the "included" nodes of the path.
+	 * @return The resources in the target path that are marked as included. The returned 
+	 * collection(s) need to be hierarchically structured.
+	 * @throws HttpException If the resource can't find a requested resource or another 
+	 * error occurs
+	 */
+	public Collection<TreeNode<Resource>> findConnectedResources(Collection<? extends Path> 
+			targetPaths) throws HttpException;
+	
+	/**
+	 * In this method the resource should write itself with the provided writer. The resource 
+	 * should also write the provided resources that should reside under it. The resource 
+	 * shouldn't expect this method call, if it doesn't allow GET.
+	 * @param writer The writer that is used in the process.
+	 * @param subResources The resources under this one that should be written inside this 
+	 * resource.
+	 * @throws HttpException If the writing wasn't carried out
+	 */
+	public void writeContents(ResourceWriter writer, 
+			Collection<? extends TreeNode<? extends Resource>> subResources) throws HttpException;
+	
+	/**
+	 * Finds the name of the resource from its path.
+	 * @param resource The resource
+	 * @return The name of the resource
+	 */
+	public static String getResourceName(Resource resource)
+	{
+		return resource.getPath().getContent();
+	}
+	
+	/**
+	 * Checks whether the provided resource allows use of the given method
+	 * @param resource The resource that is targeted with the method
+	 * @param method The method that would be used on the resource
+	 * @return Would the resource allow the use of the method
+	 */
+	public static boolean resourceAllowsMethod(Resource resource, Method method)
+	{
+		for (Method allowed : resource.getAllowedMethods())
+		{
+			if (allowed == method)
+				return true;
+		}
+		
+		return false;
+	}
+}
