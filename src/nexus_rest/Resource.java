@@ -6,6 +6,7 @@ import java.util.List;
 
 import flow_structure.TreeNode;
 import nexus_http.HttpException;
+import nexus_http.HttpStatus;
 import nexus_http.Link;
 import nexus_http.Method;
 import nexus_http.Path;
@@ -117,11 +118,11 @@ public interface Resource
 	 * @param node The node who's children are collected
 	 * @return All the direct children of the provided node
 	 */
-	public static List<Resource> getDirectNodeChilder(TreeNode<Resource> node)
+	public static List<Resource> getDirectNodeChilder(TreeNode<? extends Resource> node)
 	{
 		List<Resource> resources = new ArrayList<>();
 		
-		for (TreeNode<Resource> child : node.getChildren())
+		for (TreeNode<? extends Resource> child : node.getChildren())
 		{
 			resources.add(child.getContent());
 		}
@@ -134,16 +135,99 @@ public interface Resource
 	 * @param resourceTree A resource tree
 	 * @return The root node resource and each resource under it.
 	 */
-	public static List<Resource> getResourcesFromTree(TreeNode<Resource> resourceTree)
+	public static List<Resource> getResourcesFromTree(TreeNode<? extends Resource> resourceTree)
 	{
 		List<Resource> resources = new ArrayList<>();
 		
 		resources.add(resourceTree.getContent());
-		for (TreeNode<Resource> child : resourceTree.getChildren())
+		for (TreeNode<? extends Resource> child : resourceTree.getChildren())
 		{
 			resources.addAll(getResourcesFromTree(child));
 		}
 		
 		return resources;
+	}
+	
+	/**
+	 * Finds all the resources stored in a set of hierarchical tree structures
+	 * @param resourceTrees A collection of resource trees
+	 * @return All resources included in the provided nodes and those under them
+	 */
+	public static List<Resource> getResourcesFromTreeCollection(
+			Collection<? extends TreeNode<? extends Resource>> resourceTrees)
+	{
+		List<Resource> resources = new ArrayList<>();
+		for (TreeNode<? extends Resource> resourceTree : resourceTrees)
+		{
+			resources.addAll(getResourcesFromTree(resourceTree));
+		}
+		
+		return resources;
+	}
+	
+	/**
+	 * Searches through a collection for a resource with a specific name
+	 * @param resources The resources that are searched through
+	 * @param targetName The name of the target resource
+	 * @return A resource with the given name or null if the collection didn't contain a 
+	 * resource with the given name
+	 */
+	public static Resource findResourceWithName(Collection<? extends Resource> resources, 
+			String targetName)
+	{
+		for (Resource resource : resources)
+		{
+			if (getResourceName(resource).equalsIgnoreCase(targetName))
+				return resource;
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Creates a hierarchical resource collection from a set of resources and their children. 
+	 * Only the resources who's path is marked as included are included in this collection.
+	 * @param resources The resources included in the search. The resources should be parents 
+	 * or children for each other. Usually this would be a set of siblings under a resource.
+	 * @param targetPaths A collection of paths that should be represented in the returned 
+	 * collection. Reach path node should represent a resource in the provided collection
+	 * @return A hierarchical resource collection that contains the resources (and their 
+	 * children) that are marked as included in the target paths.
+	 * @throws HttpException If all of the target paths weren't represented in the provided 
+	 * resource collection or if one of the resources couldn't find the correct resources 
+	 * under it
+	 */
+	public static List<TreeNode<Resource>> findIncludedResources(
+			Collection<? extends Resource> resources, Collection<? extends Path> targetPaths) 
+			throws HttpException
+	{
+		List<TreeNode<Resource>> includedTrees = new ArrayList<>();
+		
+		for (Path targetPath : targetPaths)
+		{
+			Resource rootResource = findResourceWithName(resources, targetPath.getContent());
+			
+			if (rootResource == null)
+				throw new HttpException(HttpStatus.NOT_FOUND, "Can't find the resource at " + 
+						targetPath);
+			
+			Collection<TreeNode<Resource>> includedChildren = rootResource.findConnectedResources(
+					targetPath.getChildPaths());
+			
+			if (targetPath.isIncluded())
+			{
+				TreeNode<Resource> root = new TreeNode<>(rootResource, null);
+				for (TreeNode<Resource> child : includedChildren)
+				{
+					root.addChild(child);
+				}
+				
+				includedTrees.add(root);
+			}
+			else
+				includedTrees.addAll(includedChildren);
+		}
+		
+		return includedTrees;
 	}
 }

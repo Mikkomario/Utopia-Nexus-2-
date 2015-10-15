@@ -2,6 +2,7 @@ package nexus_http;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 import flow_structure.TreeNode;
 
@@ -144,7 +145,7 @@ public class Path extends TreeNode<String>
 	}
 	
 	/**
-	 * @return All the included path parts below and possibly including this part. The end 
+	 * @return All the included path parts below, and possibly including, this part node. The end 
 	 * nodes of each branch are always included, as well as any part specifically marked as 
 	 * included.
 	 */
@@ -159,6 +160,76 @@ public class Path extends TreeNode<String>
 		}
 		
 		return included;
+	}
+	
+	// TODO: Should be moved to treeNode class
+	/**
+	 * Checks whether the path is below a node with the provided content (case-insensitive)
+	 * @param content The content the parent (or grandparent, etc.) node should have
+	 * @return Is this path node below another node that has the given content. This node 
+	 * doesn't have to be directly under the other node for the result to be true.
+	 */
+	public boolean isBelowNodeWithContent(String content)
+	{
+		Path parent = getParent();
+		
+		if (parent == null)
+			return false;
+		else if (parent.getContent().equalsIgnoreCase(content))
+			return true;
+		else
+			return parent.isBelowNodeWithContent(content);
+	}
+	
+	/**
+	 * Finds the path that divides the two nodes from each other. One of the nodes needs to 
+	 * be above the other for this to work
+	 * @param upperNode The path node that is (presumably) above the other path node
+	 * @param lowerNode The path node that is (presumably) below the other path node
+	 * @return A path between (not including) the two nodes or null if there are no nodes 
+	 * between the two path nodes (also if they can't be connected). The returned path will be 
+	 * completely separate from the original path, and changes made to one don't affect the 
+	 * other.
+	 */
+	public static Path getPathBetween(Path upperNode, Path lowerNode)
+	{
+		Path upper = upperNode;
+		Path lower = lowerNode;
+		
+		if (!lowerNode.isBelowNodeWithContent(upperNode.getContent()))
+		{
+			if (upperNode.isBelowNodeWithContent(lowerNode.getContent()))
+			{
+				upper = lowerNode;
+				lower = upperNode;
+			}
+			else
+				return null;
+		}
+		
+		// Lists all the dividing path parts (from down to up)
+		Stack<Path> betweenParts = new Stack<>();
+		Path parent = lower.getParent();
+		while (!parent.getContent().equalsIgnoreCase(upper.getContent()))
+		{
+			betweenParts.push(parent);
+			parent = parent.getParent();
+		}
+		
+		if (betweenParts.isEmpty())
+			return null;
+		
+		// Creates a path from the dividing parts
+		Path topNode = betweenParts.pop();
+		Path dividingPath = new Path(topNode.getContent(), null, topNode.included);
+		Path lastNode = dividingPath;
+		while (!betweenParts.isEmpty())
+		{
+			Path nextNode = betweenParts.pop();
+			lastNode = new Path(nextNode.getContent(), lastNode, nextNode.included);
+		}
+		
+		return dividingPath;
 	}
 	
 	/**

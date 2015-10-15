@@ -10,7 +10,6 @@ import java.util.List;
 import flow_structure.TreeNode;
 import nexus_http.ContentType;
 import nexus_http.HttpException;
-import nexus_http.HttpStatus;
 import nexus_http.InternalServerException;
 import nexus_http.Method;
 import nexus_http.MethodNotAllowedException;
@@ -67,35 +66,12 @@ public class RestRequestHandler implements RequestHandler
 		{
 			// Finds the targeted resource(s)
 			Collection<Path> targetPaths = request.getPaths();
-			List<TreeNode<Resource>> targetResourceTrees = new ArrayList<>();
-			
-			for (Path target : targetPaths)
-			{
-				Resource rootResource = getResourceWithName(target.getContent());
-				
-				Collection<TreeNode<Resource>> targets = rootResource.findConnectedResources(
-						target.getChildPaths());
-				
-				if (target.isIncluded())
-				{
-					TreeNode<Resource> root = new TreeNode<>(rootResource, null);
-					for (TreeNode<Resource> child : targets)
-					{
-						root.addChild(child);
-					}
-					
-					targetResourceTrees.add(root);
-				}
-				else
-					targetResourceTrees.addAll(targets);
-			}
+			List<TreeNode<Resource>> targetResourceTrees = Resource.findIncludedResources(
+					this.resources, targetPaths);
 			
 			// Lists all the targeted resources in a list form as well
-			List<Resource> targetResources = new ArrayList<>();
-			for (TreeNode<Resource> resourceTree : targetResourceTrees)
-			{
-				targetResources.addAll(Resource.getResourcesFromTree(resourceTree));
-			}
+			List<Resource> targetResources = 
+					Resource.getResourcesFromTreeCollection(targetResourceTrees);
 			
 			// Checks that the request method is applicable for all the resources
 			for (Resource resource : targetResources)
@@ -215,17 +191,6 @@ public class RestRequestHandler implements RequestHandler
 
 	
 	// OTHER METHODS	-------------------
-	
-	private Resource getResourceWithName(String name) throws HttpException
-	{
-		for (Resource resource : this.resources)
-		{
-			if (Resource.getResourceName(resource).equalsIgnoreCase(name))
-				return resource;
-		}
-		
-		throw new HttpException(HttpStatus.NOT_FOUND);
-	}
 	
 	private ContentType getContentTypeFor(Request request)
 	{
