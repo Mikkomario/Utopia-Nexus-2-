@@ -1,7 +1,7 @@
 package nexus_http;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 
 /**
  * Responses are sent by the server in response to a request
@@ -14,19 +14,32 @@ public class Response
 	
 	private HttpStatus status;
 	private Headers headers;
-	private OutputStream body;
+	private ByteArrayOutputStream body;
 	
 	
 	// CONSTRUCTOR	--------------------
 	
 	/**
-	 * Creates a new response
+	 * Creates a new response. The status remains undefined until set.
 	 */
 	public Response()
 	{
-		this.status = HttpStatus.OK;
+		this.status = null;
 		this.headers = new Headers();
 		this.body = null;
+	}
+	
+	/**
+	 * Creates a new response
+	 * @param status The response status
+	 * @param headers The response headers
+	 * @param body The response body
+	 */
+	public Response(HttpStatus status, Headers headers, ByteArrayOutputStream body)
+	{
+		this.status = status;
+		this.headers = headers;
+		this.body = body;
 	}
 	
 	/**
@@ -41,6 +54,30 @@ public class Response
 		this.body = null;
 		
 		e.modifyHeaders(getHeaders());
+	}
+	
+	
+	// IMPLEMENTED METHODS	------------
+	
+	@Override
+	public String toString()
+	{
+		StringBuilder s = new StringBuilder();
+		
+		if (getStatus() != null)
+		{
+			s.append("Status: ");
+			s.append(getStatus());
+		}
+		s.append("\nHeaders:");
+		s.append(getHeaders().toString());
+		if (this.body != null)
+		{
+			s.append("\nBody:\n");
+			s.append(this.body.toString());
+		}
+		
+		return s.toString();
 	}
 	
 	
@@ -72,10 +109,14 @@ public class Response
 	}
 	
 	/**
+	 * Returns the response body. If there is no set body, may create one
+	 * @param createIfNotExists If there is no body yet should one be created.
 	 * @return The body part of this response. Null if not initialized.
 	 */
-	public OutputStream getBody()
+	public ByteArrayOutputStream getBody(boolean createIfNotExists)
 	{
+		if (this.body == null && createIfNotExists)
+			this.body = new ByteArrayOutputStream();
 		return this.body;
 	}
 	
@@ -83,22 +124,28 @@ public class Response
 	 * Adds a body to the response. If there was a body previously, closes it.
 	 * @param body The body part of the response.
 	 */
-	public void setBody(OutputStream body)
+	public void setBody(ByteArrayOutputStream body)
 	{
 		if (this.body != null)
-		{
-			try
-			{
-				this.body.close();
-			}
-			catch (IOException e)
-			{
-				System.err.println("Couldn't close previous response body");
-				e.printStackTrace();
-			}
-		}
+			closeBody();
 		
 		this.body = body;
+	}
+	
+	/**
+	 * Closes the response body
+	 */
+	public void closeBody()
+	{
+		try
+		{
+			if (this.body != null)
+				this.body.close();
+		}
+		catch (IOException e1)
+		{
+			System.err.println("Failed to close the response body");
+		}
 	}
 	
 	

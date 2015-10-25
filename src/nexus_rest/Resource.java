@@ -11,6 +11,8 @@ import nexus_http.Link;
 import nexus_http.Method;
 import nexus_http.Path;
 import nexus_http.Request;
+import nexus_http.Response;
+import nexus_rest.ResourceWriter.ResourceWriterException;
 
 /**
  * Resources are elements that can be connected to each other with links. The resources can 
@@ -37,26 +39,32 @@ public interface Resource
 	 * resource was created, it should be returned as well. The resource shouldn't expect this 
 	 * method call, if it doesn't allow POST.
 	 * @param request The request for the operation
+	 * @param response The response that will be sent to the client on success. The resource 
+	 * may modify the response status and headers, etc. if it needs to.
 	 * @return A link to the newly created resource
-	 * @throws HttpException If the operation wasn't completed
+	 * @throws HttpException If the operation wasn't completed successfully
 	 */
-	public Link post(Request request) throws HttpException;
+	public Link post(Request request, Response response) throws HttpException;
 	
 	/**
 	 * Modifies the resource somehow.  The resource shouldn't expect this 
 	 * method call, if it doesn't allow PUT.
 	 * @param request The request for the operation
+	 * @param response The response that will be sent to the client on success. The resource 
+	 * may modify the response status and headers, etc. if it needs to.
 	 * @throws HttpException If the operation wasn't carried out
 	 */
-	public void put(Request request) throws HttpException;
+	public void put(Request request, Response response) throws HttpException;
 	
 	/**
 	 * Deletes the resource.  The resource shouldn't expect this 
 	 * method call, if it doesn't allow DELETE.
 	 * @param request The request for the operation
+	 * @param response The response that will be sent to the client on success. The resource 
+	 * may modify the response status and headers, etc. if it needs to.
 	 * @throws HttpException If the operation wasn't carried out
 	 */
-	public void delete(Request request) throws HttpException;
+	public void delete(Request request, Response response) throws HttpException;
 	
 	/**
 	 * This method is used for finding targeted resources under / connected to a certain 
@@ -65,7 +73,7 @@ public interface Resource
 	 * other returned resources are returned below them.
 	 * @param targetPaths The target resource paths. The resources that should be returned by 
 	 * this method are the "included" nodes of the path.
-	 * @return The resources in the target path that are marked as included. The returned 
+	 * @return The resources in the target path(s) that are marked as included. The returned 
 	 * collection(s) need to be hierarchically structured.
 	 * @throws HttpException If the resource can't find a requested resource or another 
 	 * error occurs
@@ -80,10 +88,64 @@ public interface Resource
 	 * @param writer The writer that is used in the process.
 	 * @param subResources The resources under this one that should be written inside this 
 	 * resource.
-	 * @throws HttpException If the writing wasn't carried out
+	 * @param leadingPath The leading path that should be included in the resource element 
+	 * name. Null if no leading path should be written
+	 * @throws HttpException If the operation wasn't carried out
+	 * @throws ResourceWriterException If the writing failed
+	 * @see #getPathBetween(Resource, Resource)
 	 */
-	public void writeContents(ResourceWriter writer, 
-			Collection<? extends TreeNode<? extends Resource>> subResources) throws HttpException;
+	public void write(ResourceWriter writer, 
+			Collection<? extends TreeNode<? extends Resource>> subResources, Path leadingPath) 
+			throws HttpException, ResourceWriterException;
+	
+	/**
+	 * This method writes each of the subresources, presumably residing under the parent 
+	 * resource, consecutively, using the provided writer.
+	 * @param writer The writer that writes the resources.
+	 * @param parent The resource the sub resources are written under
+	 * @param subResources The resources that should be written
+	 * @throws HttpException If the operation failed
+	 * @throws ResourceWriterException If the writing failed
+	 */
+	public static void writeResourcesUnder(ResourceWriter writer, Resource parent, 
+			Collection<? extends TreeNode<? extends Resource>> subResources) throws 
+			HttpException, ResourceWriterException
+	{
+		// Writes the included resources as children
+		for (TreeNode<? extends Resource> childNode : subResources)
+		{
+			childNode.getContent().write(writer, childNode.getChildren(), 
+					Resource.getPathBetween(parent, childNode.getContent()));
+		}
+	}
+	
+	/**
+	 * Finds the path separating the two resources
+	 * @param upper The presumably upper resource
+	 * @param lower The presumably lower resource
+	 * @return The path between the two resources. Null if there is no path between or 
+	 * connecting the resources
+	 */
+	public static Path getPathBetween(Resource upper, Resource lower)
+	{
+		return Path.getPathBetween(upper.getPath(), lower.getPath(), false);
+	}
+	
+	/**
+	 * Parses the name of the resource that contains the leading path information, if present
+	 * @param resource The resource who's name is parsed
+	 * @param leadingPath The path leading to the resource. May be null.
+	 * @return The name of the resource, including the leading path (where applicable).
+	 */
+	public static String parseResourceElementName(Resource resource, Path leadingPath)
+	{
+		String resourceName = getResourceName(resource);
+		
+		if (leadingPath == null)
+			return resourceName;
+		else
+			return leadingPath.toString() + Path.DS + resourceName;
+	}
 	
 	/**
 	 * Finds the name of the resource from its path.
@@ -190,7 +252,7 @@ public interface Resource
 	 * @param resources The resources included in the search. The resources should be parents 
 	 * or children for each other. Usually this would be a set of siblings under a resource.
 	 * @param targetPaths A collection of paths that should be represented in the returned 
-	 * collection. Reach path node should represent a resource in the provided collection
+	 * collection. Each path node should represent a resource in the provided collection
 	 * @return A hierarchical resource collection that contains the resources (and their 
 	 * children) that are marked as included in the target paths.
 	 * @throws HttpException If all of the target paths weren't represented in the provided 
@@ -201,6 +263,7 @@ public interface Resource
 			Collection<? extends Resource> resources, Collection<? extends Path> targetPaths) 
 			throws HttpException
 	{
+		// TODO: Add support for *, somewhere
 		List<TreeNode<Resource>> includedTrees = new ArrayList<>();
 		
 		for (Path targetPath : targetPaths)

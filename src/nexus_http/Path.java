@@ -186,19 +186,21 @@ public class Path extends TreeNode<String>
 	 * be above the other for this to work
 	 * @param upperNode The path node that is (presumably) above the other path node
 	 * @param lowerNode The path node that is (presumably) below the other path node
+	 * @param bothWays Should the dividing path be checked both ways, just in case the lower 
+	 * node is upper instead
 	 * @return A path between (not including) the two nodes or null if there are no nodes 
 	 * between the two path nodes (also if they can't be connected). The returned path will be 
 	 * completely separate from the original path, and changes made to one don't affect the 
 	 * other.
 	 */
-	public static Path getPathBetween(Path upperNode, Path lowerNode)
+	public static Path getPathBetween(Path upperNode, Path lowerNode, boolean bothWays)
 	{
 		Path upper = upperNode;
 		Path lower = lowerNode;
 		
 		if (!lowerNode.isBelowNodeWithContent(upperNode.getContent()))
 		{
-			if (upperNode.isBelowNodeWithContent(lowerNode.getContent()))
+			if (bothWays && upperNode.isBelowNodeWithContent(lowerNode.getContent()))
 			{
 				upper = lowerNode;
 				lower = upperNode;
@@ -278,9 +280,21 @@ public class Path extends TreeNode<String>
 			// included elements of the closed path (content should be empty on this one)
 			case '(':
 				int closedPathEndsAt = uri.indexOf(')');
-				List<Path> closedPath = parseFromString(uri.substring(nextBreakerIndex + 1, 
-						closedPathEndsAt), latestNode);
-				String remainingUri = uri.substring(closedPathEndsAt + 1);
+				String remainingUri, closedPathString;
+				
+				if (closedPathEndsAt == -1)
+				{
+					remainingUri = "";
+					closedPathString = uri.substring(nextBreakerIndex + 1);
+				}
+				else
+				{
+					closedPathString = uri.substring(nextBreakerIndex + 1, closedPathEndsAt);
+					remainingUri = uri.substring(closedPathEndsAt + 1);
+				}
+				
+				List<Path> closedPath = parseFromString(closedPathString, latestNode);
+				
 				List<Path> createdFromRemaining = new ArrayList<>();
 				if (!remainingUri.isEmpty())
 				{

@@ -38,6 +38,8 @@ public class Request
 	{
 		this.method = method;
 		this.headers = headers;
+		if (this.headers == null)
+			this.headers = new Headers();
 		
 		int parametersStartAfter = uriLine.indexOf('?');
 		String pathPart, parameterPart;
@@ -73,6 +75,11 @@ public class Request
 		this.targetPathString = path;
 		this.parameters = parameters;
 		this.headers = headers;
+		
+		if (this.parameters == null)
+			this.parameters = new Parameters();
+		if (this.headers == null)
+			this.headers = new Headers();
 	}
 	
 	/**
