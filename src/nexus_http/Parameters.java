@@ -17,6 +17,7 @@ public class Parameters
 {
 	// ATTRIBUTES	------------------------
 	
+	// TODO: Use model here. Stream must be made a new data type
 	private Map<String, String> parameters;
 	private Map<String, InputStream> streamParameters;
 	

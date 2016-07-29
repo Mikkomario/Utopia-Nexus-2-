@@ -18,6 +18,9 @@ import nexus_rest.ResourceWriter.ResourceWriterException;
  */
 public class XmlJsonWriterProvider implements ResourceWriterProvider
 {
+	// TODO: Create a more generic version where different writers are attached to different 
+	// content types
+	
 	// ATTRIBUTES	-------------------------
 	
 	private List<ContentType> contentTypes;

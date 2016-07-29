@@ -28,7 +28,7 @@ public class HttpSettings
 	 * @param ip The server ip
 	 * @param port The server port
 	 */
-	public void setServerStatus(String ip, int port)
+	public static void setServerStatus(String ip, int port)
 	{
 		HttpSettings.ip = ip;
 		HttpSettings.port = port;

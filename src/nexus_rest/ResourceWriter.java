@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import nexus_http.ContentType;
 import nexus_http.Link;
 import nexus_http.Path;
+import utopia.flow.generics.Value;
 
 /**
  * Resource writers are used when forming a body for a response. The writers should be 
@@ -51,7 +52,7 @@ public interface ResourceWriter
 	 * @param propertyValue The element value
 	 * @throws ResourceWriterException If the writing fails
 	 */
-	public void writeProperty(String propertyName, String propertyValue) throws ResourceWriterException;
+	public void writeProperty(String propertyName, Value propertyValue) throws ResourceWriterException;
 	
 	/**
 	 * The writer writes a link element under the currently open resource.

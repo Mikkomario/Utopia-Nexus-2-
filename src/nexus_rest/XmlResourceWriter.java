@@ -13,6 +13,7 @@ import flow_io.XMLIOAccessor;
 import nexus_http.ContentType;
 import nexus_http.Link;
 import nexus_http.Path;
+import utopia.flow.generics.Value;
 
 /**
  * These writers are able to write resources in xml format
@@ -107,9 +108,11 @@ public class XmlResourceWriter implements ResourceWriter
 	}
 
 	@Override
-	public void writeProperty(String attributeName, String attributeValue) throws 
+	public void writeProperty(String attributeName, Value attributeValue) throws 
 			ResourceWriterException
 	{
+		// TODO: Use xml element writer to write the value(s)
+		// The element writer needs encoding options, however
 		if (attributeName != null)
 		{
 			try
@@ -117,7 +120,7 @@ public class XmlResourceWriter implements ResourceWriter
 				if (attributeValue != null)
 				{
 					writeResourceStart(attributeName, null);
-					getWriter().writeCharacters(attributeValue);
+					getWriter().writeCharacters(attributeValue.toString());
 					writeResourceEnd();
 				}
 				else

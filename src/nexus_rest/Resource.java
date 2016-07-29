@@ -23,6 +23,8 @@ import nexus_rest.ResourceWriter.ResourceWriterException;
  */
 public interface Resource
 {	
+	// TODO: Make an abstract class version?
+	
 	/**
 	 * @return The path leading to the resource. The resource should be accessible through 
 	 * the provided path.
@@ -88,34 +90,30 @@ public interface Resource
 	 * @param writer The writer that is used in the process.
 	 * @param subResources The resources under this one that should be written inside this 
 	 * resource.
-	 * @param leadingPath The leading path that should be included in the resource element 
-	 * name. Null if no leading path should be written
 	 * @throws HttpException If the operation wasn't carried out
 	 * @throws ResourceWriterException If the writing failed
 	 * @see #getPathBetween(Resource, Resource)
 	 */
 	public void write(ResourceWriter writer, 
-			Collection<? extends TreeNode<? extends Resource>> subResources, Path leadingPath) 
+			Collection<? extends TreeNode<? extends Resource>> subResources) 
 			throws HttpException, ResourceWriterException;
 	
 	/**
 	 * This method writes each of the subresources, presumably residing under the parent 
 	 * resource, consecutively, using the provided writer.
 	 * @param writer The writer that writes the resources.
-	 * @param parent The resource the sub resources are written under
 	 * @param subResources The resources that should be written
 	 * @throws HttpException If the operation failed
 	 * @throws ResourceWriterException If the writing failed
 	 */
-	public static void writeResourcesUnder(ResourceWriter writer, Resource parent, 
+	public static void writeResourcesUnder(ResourceWriter writer, 
 			Collection<? extends TreeNode<? extends Resource>> subResources) throws 
 			HttpException, ResourceWriterException
 	{
 		// Writes the included resources as children
 		for (TreeNode<? extends Resource> childNode : subResources)
 		{
-			childNode.getContent().write(writer, childNode.getChildren(), 
-					Resource.getPathBetween(parent, childNode.getContent()));
+			childNode.getContent().write(writer, childNode.getChildren());
 		}
 	}
 	
@@ -180,7 +178,7 @@ public interface Resource
 	 * @param node The node who's children are collected
 	 * @return All the direct children of the provided node
 	 */
-	public static List<Resource> getDirectNodeChilder(TreeNode<? extends Resource> node)
+	public static List<Resource> getDirectNodeChildren(TreeNode<? extends Resource> node)
 	{
 		List<Resource> resources = new ArrayList<>();
 		

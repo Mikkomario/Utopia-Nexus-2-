@@ -14,6 +14,10 @@ import nexus_http.Path;
 import nexus_http.Request;
 import nexus_http.Response;
 import nexus_rest.ResourceWriter.ResourceWriterException;
+import utopia.flow.generics.BasicVariableParser;
+import utopia.flow.generics.Model;
+import utopia.flow.generics.Value;
+import utopia.flow.generics.Variable;
 import flow_structure.TreeNode;
 
 /**
@@ -22,7 +26,7 @@ import flow_structure.TreeNode;
  * @author Mikko Hilpinen
  * @since 24.10.2015
  */
-public class SimpleResource implements Resource
+public class SimpleResource extends Model<Variable> implements Resource
 {
 	// ATTRIBUTES	---------------------
 	
@@ -30,8 +34,7 @@ public class SimpleResource implements Resource
 	
 	private Method[] allowedMethods;
 	private Path path;
-	private Map<String, Resource> links;
-	private Map<String, String> properties;
+	private Map<String, Resource> links = new HashMap<>();
 	
 	
 	// CONSTRUCTOR	---------------------
@@ -43,9 +46,10 @@ public class SimpleResource implements Resource
 	 */
 	public SimpleResource(Path path, Method... allowedMethods)
 	{
+		super(new BasicVariableParser());
+		
+		// TODO: The allowed methods should probably be stored inside a set instead
 		this.allowedMethods = noDelete(allowedMethods);
-		this.links = new HashMap<>();
-		this.properties = new HashMap<>();
 		this.path = path;
 	}
 	
@@ -77,6 +81,7 @@ public class SimpleResource implements Resource
 	@Override
 	public Link post(Request request, Response response) throws HttpException
 	{
+		// TODO: Could use a model declaration here (create own extension?)
 		// Checks the parameters
 		String name = request.getParameters().getParameterValue(NAME_PROPERTY);
 		if (name == null)
@@ -90,7 +95,9 @@ public class SimpleResource implements Resource
 				this.allowedMethods);
 		for (String parameterName : request.getParameters().getParameterNames())
 		{
-			child.putPoperty(parameterName, request.getParameters().getParameterValue(parameterName));
+			// TODO: Use type value instead of string
+			child.putPoperty(parameterName, 
+					Value.String(request.getParameters().getParameterValue(parameterName)));
 		}
 		this.links.put(name.toLowerCase(), child);
 		
@@ -107,7 +114,9 @@ public class SimpleResource implements Resource
 	{
 		for(String parameterName : request.getParameters().getParameterNames())
 		{
-			putPoperty(parameterName, request.getParameters().getParameterValue(parameterName));
+			// TODO: Change request parameters from string to variable
+			putPoperty(parameterName, 
+					Value.String(request.getParameters().getParameterValue(parameterName)));
 		}
 	}
 
@@ -129,20 +138,19 @@ public class SimpleResource implements Resource
 
 	@Override
 	public void write(ResourceWriter writer,
-			Collection<? extends TreeNode<? extends Resource>> subResources, Path leadingPath)
+			Collection<? extends TreeNode<? extends Resource>> subResources)
 			throws HttpException, ResourceWriterException
 	{
-		writer.writeResourceStart(Resource.parseResourceElementName(this, leadingPath), 
-				getPath());
+		writer.writeResourceStart(Resource.getResourceName(this), getPath());
 		
 		// Writes all the properties
-		for (String propertyName : this.properties.keySet())
+		for (Variable property : getAttributes())
 		{
-			writer.writeProperty(propertyName, this.properties.get(propertyName));
+			writer.writeProperty(property.getName(), property.getValue());
 		}
 		
 		// Writes the included resources as children
-		Resource.writeResourcesUnder(writer, this, subResources);
+		Resource.writeResourcesUnder(writer, subResources);
 		
 		writer.writeResourceEnd();
 	}
@@ -156,14 +164,13 @@ public class SimpleResource implements Resource
 	 * @param value The new value of the property
 	 * @throws HttpException If the name property was being modified
 	 */
-	public void putPoperty(String propertyName, String value) throws HttpException
+	public void putPoperty(String propertyName, Value value) throws HttpException
 	{
 		// Name can't be overwritten
-		if (propertyName.equalsIgnoreCase(NAME_PROPERTY) && this.properties.containsKey(
-				NAME_PROPERTY))
+		if (propertyName.equalsIgnoreCase(NAME_PROPERTY) && containsAttribute(NAME_PROPERTY))
 			throw new HttpException(HttpStatus.FORBIDDEN, NAME_PROPERTY + " can't be modified");
 		
-		this.properties.put(propertyName.toLowerCase(), value);
+		setAttributeValue(propertyName, value);
 	}
 	
 	/**

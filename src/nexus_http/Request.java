@@ -7,7 +7,6 @@ import java.util.Set;
 
 /**
  * Requests are sent by clients and handled by the server
- * 
  * @author Mikko Hilpinen
  * @since 27.12.2014
  */

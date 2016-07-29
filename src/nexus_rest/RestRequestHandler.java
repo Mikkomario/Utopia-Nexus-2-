@@ -1,7 +1,5 @@
 package nexus_rest;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -104,7 +102,7 @@ public class RestRequestHandler implements RequestHandler
 								{
 									lastLocation = resourceTree.getContent().getPath();
 									resourceTree.getContent().write(writer, 
-											resourceTree.getChildren(), null);
+											resourceTree.getChildren());
 								}
 							}
 							// With POST, writes the link(s)
@@ -183,7 +181,7 @@ public class RestRequestHandler implements RequestHandler
 					(e.getSourceLocation() != null ? e.getSourceLocation() : "?"));
 			e.printStackTrace();
 			if (e.getRequest() != null)
-				e.getRequest().toString();
+				System.err.println(e.getRequest().toString());
 			
 			// Returns an error response
 			return new Response(e);
